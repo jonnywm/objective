@@ -12,7 +12,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
-import javax.swing.Icon;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
@@ -31,7 +30,6 @@ public class Main {
     private static boolean tipoAcertado;
     private static boolean pratoAcertado;
     private static boolean continuarPorTipo = true;
-    private static Icon ICON;
 
     public static void main(String[] args) {
         List<Enunciado> enunciados = Init.getDefaultEnunciados();
@@ -88,23 +86,21 @@ public class Main {
                                 .stream()
                                 .sorted(Comparator.comparing(Prato::getOrdem, Comparator.reverseOrder()))
                                 .forEachOrdered(prato -> {
-                                    if (!pratoAcertado) {
-                                        Integer resposta2 = JOptionPane.showConfirmDialog(FRAME, Constants.DEFAULT_ASK + prato.getNome() + "?",
-                                                Constants.CONFIRM_TITTLE, JOptionPane.YES_NO_OPTION);
-                                        switch (resposta2) {
-                                            case JOptionPane.YES_OPTION:
-                                                //Prato acertado
-                                                JOptionPane.showConfirmDialog(FRAME, ACERTO.getTexto(), Constants.WINDOW_TITLE, JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE);
-                                                pratoAcertado = true;
-                                                break;
-                                            case JOptionPane.CLOSED_OPTION:
-                                                System.exit(0);
-                                                break;
-                                        }
+                                    Integer resposta2 = JOptionPane.showConfirmDialog(FRAME, Constants.DEFAULT_ASK + prato.getNome() + "?",
+                                            Constants.CONFIRM_TITTLE, JOptionPane.YES_NO_OPTION);
+                                    switch (resposta2) {
+                                        case JOptionPane.YES_OPTION:
+                                            //Prato acertado
+                                            JOptionPane.showConfirmDialog(FRAME, ACERTO.getTexto(), Constants.WINDOW_TITLE, JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE);
+                                            pratoAcertado = true;
+                                            break;
+                                        case JOptionPane.CLOSED_OPTION:
+                                            System.exit(0);
+                                            break;
                                     }
                                 });
                         if (!pratoAcertado) {
-                            adicionarEnunciados(enunciados, enunciadoTipoPrato);
+                            adicionarEnunciados(enunciados);
                         }
                         break;
                     case JOptionPane.CLOSED_OPTION:
@@ -122,7 +118,7 @@ public class Main {
                     JOptionPane.showConfirmDialog(FRAME, ACERTO.getTexto(), Constants.WINDOW_TITLE, JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE);
                     break;
                 case JOptionPane.NO_OPTION:
-                    adicionarEnunciados(enunciados, null);
+                    adicionarEnunciados(enunciados);
                     break;
                 case JOptionPane.CLOSED_OPTION:
                     System.exit(0);
@@ -132,40 +128,38 @@ public class Main {
 
     }
 
-    public static void adicionarEnunciados(List<Enunciado> enunciados, Enunciado enunciadoTipoPrato) {
+    public static void adicionarEnunciados(List<Enunciado> enunciados) {
         //Recebendo prato pensado
         String nomePrato = JOptionPane.showInputDialog(FRAME, SOLICITAR_NOME_PRATO.getTexto(), Constants.GIVE_UP_TITTLE, JOptionPane.QUESTION_MESSAGE);
         if (Objects.nonNull(nomePrato) && !nomePrato.trim().isEmpty()) {
             //Recebendo tipo do prato pensado se o tipo já não tiver sido acertado
-            if (Objects.isNull(enunciadoTipoPrato)) {
-                String nomeTipoPrato = JOptionPane.showInputDialog(FRAME, nomePrato + SOLICITAR_TIPO_PRATO.getTexto(), Constants.COMPLETE_TITTLE, JOptionPane.QUESTION_MESSAGE);
-                if (Objects.nonNull(nomeTipoPrato) && !nomeTipoPrato.trim().isEmpty()) {
-                    //Início: Criando novo enunciado para o tipo de prato e adicionando o prato pensado.
-                    Integer proximoNaOrdem = enunciados.stream().filter(e1 -> e1.getTipoPrato() != null).mapToInt(e -> e.getTipoPrato().getOrdem()).max().getAsInt();
-                    enunciadoTipoPrato = enunciados.stream()
-                            .filter(e1 -> e1.getTipoPrato() != null)
-                            .filter(enunciado -> enunciado.getTipoPrato().getNome().equalsIgnoreCase(nomeTipoPrato.trim()))
-                            .findFirst()
-                            .orElse(Enunciado.builder()
-                                    .tipoEnunciado(TipoEnunciado.PERGUNTA_ADICIONADA)
-                                    .tipoPrato(TipoPrato.builder()
-                                            .nome(nomeTipoPrato.trim())
-                                            .ordem(proximoNaOrdem)
-                                            .build())
-                                    .build());
+            String nomeTipoPrato = JOptionPane.showInputDialog(FRAME, nomePrato + SOLICITAR_TIPO_PRATO.getTexto(), Constants.COMPLETE_TITTLE, JOptionPane.QUESTION_MESSAGE);
+            if (Objects.nonNull(nomeTipoPrato) && !nomeTipoPrato.trim().isEmpty()) {
+                //Início: Criando novo enunciado para o tipo de prato e adicionando o prato pensado.
+                Integer proximoNaOrdem = enunciados.stream().filter(e1 -> e1.getTipoPrato() != null).mapToInt(e -> e.getTipoPrato().getOrdem()).max().getAsInt();
+                Enunciado enunciadoTipoPrato = enunciados.stream()
+                        .filter(e1 -> e1.getTipoPrato() != null)
+                        .filter(enunciado -> enunciado.getTipoPrato().getNome().equalsIgnoreCase(nomeTipoPrato.trim()))
+                        .findFirst()
+                        .orElse(Enunciado.builder()
+                                .tipoEnunciado(TipoEnunciado.PERGUNTA_ADICIONADA)
+                                .tipoPrato(TipoPrato.builder()
+                                        .nome(nomeTipoPrato.trim())
+                                        .ordem(proximoNaOrdem)
+                                        .build())
+                                .build());
 
+                //Fim: Criando novo enunciado para o tipo de prato
+                
+                //Adicionando o prato pensado.
+                enunciadoTipoPrato.getTipoPrato()
+                        .addPrato(Prato.builder()
+                                .nome(nomePrato.trim())
+                                .tipoPrato(enunciadoTipoPrato.getTipoPrato())
+                                .build());
+                if (!enunciados.contains(enunciadoTipoPrato)) {
+                    enunciados.add(enunciadoTipoPrato);
                 }
-            }
-            //Fim: Criando novo enunciado para o tipo de prato
-
-            //Adicionando o prato pensado.
-            enunciadoTipoPrato.getTipoPrato()
-                    .addPrato(Prato.builder()
-                            .nome(nomePrato.trim())
-                            .tipoPrato(enunciadoTipoPrato.getTipoPrato())
-                            .build());
-            if (!enunciados.contains(enunciadoTipoPrato)) {
-                enunciados.add(enunciadoTipoPrato);
             }
 
         } else if (Objects.isNull(nomePrato)) {
